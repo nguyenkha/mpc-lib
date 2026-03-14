@@ -97,6 +97,8 @@ jobs:
           emcmake cmake .. -Bbuild/wasm \
             -DMPC_LIB_BUILD_BINDINGS=ON \
             -DOPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/openssl-wasm \
+            -DOPENSSL_INCLUDE_DIR=$GITHUB_WORKSPACE/openssl-wasm/include \
+            -DOPENSSL_CRYPTO_LIBRARY=$GITHUB_WORKSPACE/openssl-wasm/lib/libcrypto.a \
             -DMPC_LIB_SKIP_TESTS=ON
           cmake --build build/wasm
 
