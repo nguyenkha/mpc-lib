@@ -18,21 +18,22 @@
   },
   "files": [
     "dist/",
-    "build/Release/mpc_cosigner.node",
+    "prebuilds/",
     "build/wasm/mpc_cosigner_wasm.js",
     "build/wasm/mpc_cosigner_wasm.wasm"
   ],
   "scripts": {
-    "build:native": "cmake-js compile -d .. -O build/Release -DMPC_LIB_BUILD_BINDINGS=ON",
+    "build:native": "cmake -S .. -B build/Release -DCMAKE_BUILD_TYPE=Release -DMPC_LIB_BUILD_BINDINGS=ON -DNODE_ADDON_API_DIR=$(node -e \"console.log(require.resolve('node-addon-api/package.json').replace('/package.json',''))\") -DCMAKE_JS_INC=$(node -e \"console.log(require('node-api-headers').include_dir)\") && cmake --build build/Release --target mpc_cosigner -j$(node -e \"console.log(require('os').cpus().length)\")",
     "build:wasm": "emcmake cmake .. -Bbuild/wasm -DMPC_LIB_BUILD_BINDINGS=ON && cmake --build build/wasm",
     "build:ts": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
     "build": "npm run build:native && npm run build:ts",
+    "prebuild:copy": "node -e \"const fs=require('fs'),path=require('path');const d=path.join('prebuilds',process.platform+'-'+process.arch);fs.mkdirSync(d,{recursive:true});fs.copyFileSync('build/Release/bindings/mpc_cosigner.node',path.join(d,'mpc_cosigner.node'));console.log('Copied prebuild to',d)\"",
     "test": "node --test dist/esm/test/"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "cmake-js": "^7.3.0",
     "node-addon-api": "^8.0.0",
+    "node-api-headers": "^1.3.0",
     "typescript": "^5.4.0"
   }
 }

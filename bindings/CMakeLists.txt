@@ -94,13 +94,15 @@ else()
     endif()
 
     # Find node-addon-api
-    execute_process(
-        COMMAND node -p "require('node-addon-api').include"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE NODE_ADDON_API_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+    if(NOT DEFINED NODE_ADDON_API_DIR)
+        execute_process(
+            COMMAND node -p "require('node-addon-api').include"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE NODE_ADDON_API_DIR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+    endif()
 
     add_library(mpc_cosigner SHARED
         ${C_WRAPPER_SOURCES}
@@ -128,5 +130,11 @@ else()
         cosigner
         ${CMAKE_JS_LIB}
     )
+
+    # When building without cmake-js (e.g. standalone cmake), N-API symbols
+    # come from the Node.js executable at runtime.
+    if(APPLE AND NOT CMAKE_JS_LIB)
+        target_link_options(mpc_cosigner PRIVATE -undefined dynamic_lookup)
+    endif()
 
 endif()

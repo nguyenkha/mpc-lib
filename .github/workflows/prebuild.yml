@@ -1,0 +1,145 @@
+name: Prebuild & Publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  prebuild:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14         # Apple Silicon (M1+)
+            platform: darwin
+            arch: arm64
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install system dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config uuid-dev libssl-dev
+
+      - name: Install system dependencies (macOS)
+        if: matrix.platform == 'darwin'
+        run: |
+          brew install cmake openssl@3 pkg-config
+
+      - name: Install npm dependencies
+        working-directory: bindings
+        run: npm install
+
+      - name: Build native addon
+        working-directory: bindings
+        run: npm run build:native
+        env:
+          OPENSSL_ROOT_DIR: ${{ matrix.platform == 'darwin' && '/opt/homebrew/opt/openssl@3' || '' }}
+
+      - name: Copy prebuild
+        working-directory: bindings
+        run: |
+          mkdir -p prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
+          cp build/Release/bindings/mpc_cosigner.node prebuilds/${{ matrix.platform }}-${{ matrix.arch }}/mpc_cosigner.node
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.platform }}-${{ matrix.arch }}
+          path: bindings/prebuilds/${{ matrix.platform }}-${{ matrix.arch }}/mpc_cosigner.node
+
+  wasm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libssl-dev
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.51
+
+      - name: Build WASM
+        working-directory: bindings
+        run: npm run build:wasm
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build
+          path: bindings/build/wasm/mpc_cosigner_wasm.*
+
+  publish:
+    needs: [prebuild, wasm]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Download all prebuild artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bindings/prebuilds
+          pattern: prebuild-*
+          merge-multiple: false
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-build
+          path: bindings/build/wasm
+
+      - name: Arrange prebuilds
+        run: |
+          cd bindings
+          # download-artifact creates subdirs per artifact name, flatten them
+          for dir in prebuilds/prebuild-*/; do
+            platform_arch=$(basename "$dir" | sed 's/^prebuild-//')
+            mkdir -p "prebuilds/${platform_arch}"
+            cp "$dir"/*.node "prebuilds/${platform_arch}/"
+          done
+          # Clean up artifact wrapper dirs
+          rm -rf prebuilds/prebuild-*
+          echo "Prebuilds:"
+          find prebuilds -type f
+          echo "WASM:"
+          ls -la build/wasm/
+
+      - name: Build TypeScript
+        working-directory: bindings
+        run: |
+          npm install
+          npm run build:ts
+
+      - name: Publish to npm
+        working-directory: bindings
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

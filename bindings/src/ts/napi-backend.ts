@@ -58,20 +58,40 @@ let addon: NativeAddon | null = null;
 
 function loadAddon(): NativeAddon {
   if (addon) return addon;
+
+  const path = require("path");
+  const platform = process.platform;
+  const arch = process.arch;
+  const bindingsRoot = path.resolve(__dirname, "..", "..");
+
+  // 1. Try platform-specific prebuild
+  const prebuildPath = path.join(
+    bindingsRoot,
+    "prebuilds",
+    `${platform}-${arch}`,
+    "mpc_cosigner.node",
+  );
   try {
-    // Try loading from build directory
-    addon = require("../../build/Release/mpc_cosigner.node") as NativeAddon;
-  } catch {
+    addon = require(prebuildPath) as NativeAddon;
+    return addon;
+  } catch {}
+
+  // 2. Try local build directory (development)
+  for (const rel of [
+    path.join("build", "Release", "bindings", "mpc_cosigner.node"),
+    path.join("build", "Release", "mpc_cosigner.node"),
+  ]) {
     try {
-      // Try loading from prebuild
-      addon = require("../../prebuilds/mpc_cosigner.node") as NativeAddon;
-    } catch {
-      throw new Error(
-        "Native addon not found. Build with: npm run build:native",
-      );
-    }
+      addon = require(path.join(bindingsRoot, rel)) as NativeAddon;
+      return addon;
+    } catch {}
   }
-  return addon;
+
+  throw new Error(
+    `Native addon not found for ${platform}-${arch}. ` +
+    `Looked in: ${prebuildPath} and build/Release/. ` +
+    `Build from source with: npm run build:native`,
+  );
 }
 
 export class NapiBackend implements MpcBackend {
