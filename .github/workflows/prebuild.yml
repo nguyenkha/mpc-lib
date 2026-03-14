@@ -83,11 +83,11 @@ jobs:
         run: |
           git clone --depth 1 --branch openssl-3.0.15 https://github.com/openssl/openssl.git openssl-src
           cd openssl-src
-          emconfigure ./Configure linux-generic32 no-asm no-threads no-dso no-shared \
+          CC=emcc AR=emar RANLIB=emranlib ./Configure linux-generic32 \
+            no-asm no-threads no-dso no-shared no-tests \
             --prefix=$GITHUB_WORKSPACE/openssl-wasm \
             --libdir=lib \
-            CFLAGS="-Os" \
-            CC=emcc AR=emar RANLIB=emranlib
+            CFLAGS="-Os"
           emmake make -j$(nproc) build_libs
           emmake make install_dev
 
