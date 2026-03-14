@@ -16,3 +16,8 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR} AND NOT MPC_LIB_SKIP_TESTS
     enable_testing()
     add_subdirectory(test)
 endif()
+
+option(MPC_LIB_BUILD_BINDINGS "Build Node.js/WASM TypeScript bindings" OFF)
+if(MPC_LIB_BUILD_BINDINGS)
+    add_subdirectory(bindings)
+endif()

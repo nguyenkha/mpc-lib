@@ -1,0 +1,37 @@
+{
+  "name": "@anthropic/mpc-cosigner",
+  "version": "0.1.0",
+  "description": "TypeScript bindings for Fireblocks MPC signing library",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "node": {
+        "import": "./dist/esm/index.js",
+        "require": "./dist/cjs/index.js"
+      },
+      "browser": "./dist/esm/index.js",
+      "default": "./dist/esm/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "build/Release/mpc_cosigner.node",
+    "build/wasm/mpc_cosigner_wasm.js",
+    "build/wasm/mpc_cosigner_wasm.wasm"
+  ],
+  "scripts": {
+    "build:native": "cmake-js compile -d .. -O build/Release -DMPC_LIB_BUILD_BINDINGS=ON",
+    "build:wasm": "emcmake cmake .. -Bbuild/wasm -DMPC_LIB_BUILD_BINDINGS=ON && cmake --build build/wasm",
+    "build:ts": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
+    "build": "npm run build:native && npm run build:ts",
+    "test": "node --test dist/esm/test/"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "cmake-js": "^7.3.0",
+    "node-addon-api": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}
