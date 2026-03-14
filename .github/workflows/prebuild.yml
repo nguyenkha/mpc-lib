@@ -84,7 +84,7 @@ jobs:
           git clone --depth 1 --branch openssl-3.0.15 https://github.com/openssl/openssl.git openssl-src
           cd openssl-src
           CC=emcc AR=emar RANLIB=emranlib ./Configure linux-generic32 \
-            no-asm no-threads no-dso no-shared no-tests \
+            no-asm no-threads no-dso no-shared no-tests no-afalgeng \
             --prefix=$GITHUB_WORKSPACE/openssl-wasm \
             --libdir=lib \
             CFLAGS="-Os"
