@@ -401,6 +401,11 @@ uint64_t eddsa_online_signing_service::get_eddsa_signature(const std::string& tx
     return my_id;
 }
 
+void eddsa_online_signing_service::cancel_signing(const std::string& request_id)
+{
+    _signing_persistency.delete_temporary_signing_data(request_id);
+}
+
 }
 }
 }
