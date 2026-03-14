@@ -79,9 +79,26 @@ jobs:
         with:
           version: 3.1.51
 
+      - name: Build OpenSSL for WASM
+        run: |
+          git clone --depth 1 --branch openssl-3.0.15 https://github.com/openssl/openssl.git openssl-src
+          cd openssl-src
+          emconfigure ./Configure linux-generic32 no-asm no-threads no-engine no-hw no-dso \
+            --prefix=$GITHUB_WORKSPACE/openssl-wasm \
+            -static \
+            CFLAGS="-Os" \
+            CC=emcc AR=emar RANLIB=emranlib
+          emmake make -j$(nproc) build_libs
+          emmake make install_dev
+
       - name: Build WASM
         working-directory: bindings
-        run: npm run build:wasm
+        run: |
+          emcmake cmake .. -Bbuild/wasm \
+            -DMPC_LIB_BUILD_BINDINGS=ON \
+            -DOPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/openssl-wasm \
+            -DMPC_LIB_SKIP_TESTS=ON
+          cmake --build build/wasm
 
       - name: Upload WASM artifact
         uses: actions/upload-artifact@v4
