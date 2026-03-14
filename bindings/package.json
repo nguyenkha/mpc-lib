@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "TypeScript bindings for Fireblocks MPC signing library",
   "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nguyenkha/mpc-lib"
+  },
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
