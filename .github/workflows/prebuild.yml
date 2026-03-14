@@ -92,21 +92,22 @@ jobs:
           emmake make install_dev
 
       - name: Build WASM
-        working-directory: bindings
         run: |
-          emcmake cmake .. -Bbuild/wasm \
+          emcmake cmake -S . -B build/wasm \
             -DMPC_LIB_BUILD_BINDINGS=ON \
             -DOPENSSL_ROOT_DIR=$GITHUB_WORKSPACE/openssl-wasm \
             -DOPENSSL_INCLUDE_DIR=$GITHUB_WORKSPACE/openssl-wasm/include \
             -DOPENSSL_CRYPTO_LIBRARY=$GITHUB_WORKSPACE/openssl-wasm/lib/libcrypto.a \
             -DMPC_LIB_SKIP_TESTS=ON
-          cmake --build build/wasm
+          cmake --build build/wasm --target mpc_cosigner_wasm
 
       - name: Upload WASM artifact
         uses: actions/upload-artifact@v4
         with:
           name: wasm-build
-          path: bindings/build/wasm/mpc_cosigner_wasm.*
+          path: |
+            build/wasm/bindings/mpc_cosigner_wasm.js
+            build/wasm/bindings/mpc_cosigner_wasm.wasm
 
   publish:
     needs: [prebuild, wasm]
@@ -134,6 +135,9 @@ jobs:
         with:
           name: wasm-build
           path: bindings/build/wasm
+
+      - name: Verify WASM files
+        run: ls -la bindings/build/wasm/
 
       - name: Arrange prebuilds
         run: |
